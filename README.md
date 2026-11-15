@@ -1,187 +1,157 @@
-# ⚡ Birla Blitz: Sound-to-Text Acoustic Receiver (Android)
+# Birla Blitz: Android Acoustic Receiver & Voice Synthesizer
 
-> **Standalone Android App for High-Frequency Acoustic Signal Reception, Real-Time Spectrogram Analysis, Optical Reconstruction, and Accessible Voice Narration.**
+A standalone native Android application that receives high-frequency acoustic data signals transmitted through laptop speakers, reconstructs planetary Earth observation telemetry in real time, and narrates the scientific findings aloud using native voice synthesis.
 
-[![Platform](https://img.shields.io/badge/Platform-Android_5.0%2B_(API_21%2B)-3DDC84?style=flat&logo=android&logoColor=white)](https://developer.android.com)
-[![Engine](https://img.shields.io/badge/Engine-Native_WebView_%2B_WASM-blue?style=flat)](https://webassembly.org)
-[![Privacy](https://img.shields.io/badge/Privacy-100%25_Offline_•_Zero_Cloud_APIs-success?style=flat)](https://github.com)
-[![License](https://img.shields.io/badge/License-MIT-purple?style=flat)](LICENSE)
+Developed as part of the **NASA Space Apps Challenge / Earth Information Center (EIC)** initiative to explore multimodal sonification and accessible science communication for blind and visually impaired users.
 
 ---
 
-## 📖 Overview
+## Overview
 
-**Birla Blitz Sound to Text (Android)** is a native Android application engineered to capture sound waves transmitted through air via laptop or external speakers, demodulate encoded FSK (Frequency Shift Keying) acoustic data bursts in real time through the phone's microphone, and reconstruct visual image telemetry accompanied by spoken voice narration.
+Traditional data transfer relies on Wi-Fi, Bluetooth, cellular data, or physical cables. Birla Blitz operates entirely **over-the-air via acoustic soundwaves**, using the device microphone to detect and demodulate high-speed Frequency Shift Keying (FSK) audio bursts emitted by the companion web transmitter.
 
-The app is **100% offline**, requiring **no cloud accounts, no API keys, and no internet access** once installed.
+The application is completely **self-contained and 100% offline**:
+* No cloud servers or backend databases.
+* No API keys or authentication requirements.
+* No internet or cellular connectivity needed during operation.
+
+```
+[Laptop Speaker]  ═══ (Acoustic Sound Waves) ═══►  [Phone Microphone]
+                                                          │
+                                                    [Web Audio API]
+                                                          │
+                                                [WASM Demodulator]
+                                                          │
+                                            ┌─────────────┴─────────────┐
+                                            ▼                           ▼
+                                  [Planetary Telemetry]        [Optical Payload]
+                                   • SVS 5147 (Temp)            • General Visuals
+                                   • SVS 5148 (Wind)            • Luminance Matrix
+                                   • SVS 5149 (Precip)          • Optical Inspection
+                                   • SVS 5150 (Humid)                   │
+                                            │                           │
+                                            └─────────────┬─────────────┘
+                                                          ▼
+                                            [Spoken Audio Narration]
+                                            (Android Native TTS Engine)
+```
 
 ---
 
-## 🛠️ How We Built the APK
+## Key Capabilities
 
-### 1. High-Performance Hybrid Architecture
-Rather than relying on heavy frameworks, this application uses a lightweight, high-performance hybrid architecture combining native Android runtime with WebAssembly:
+### 1. Real-Time Acoustic Demodulation
+* Captures microphone input at 44.1 kHz / 48 kHz.
+* Uses an embedded WebAssembly signal processing core (`acoustic-modem.js`) running a Discrete Fourier Transform (DFT) filter bank to detect FSK tone frequencies.
+* Demodulates error-corrected data payloads from acoustic bursts into structured telemetry codewords.
 
-```
-┌────────────────────────────────────────────────────────┐
-│             Birla Blitz Android Native Wrapper         │
-│                                                        │
-│  ┌──────────────────────┐    ┌──────────────────────┐  │
-│  │ LocalAssetServer     │    │ AndroidTTS Bridge    │  │
-│  │ (127.0.0.1 Loopback) │    │ (Native Speech TTS)  │  │
-│  └──────────┬───────────┘    └──────────▲───────────┘  │
-│             │                           │              │
-│  ┌──────────▼───────────────────────────┴───────────┐  │
-│  │   Hardware-Accelerated Android WebView           │  │
-│  │                                                  │  │
-│  │   • phone.html UI & Waveform Canvas              │  │
-│  │   • Web Audio API Microphone Stream Capture      │  │
-│  │   • acoustic-modem.js (High-Speed WASM Core)     │  │
-│  │   • Dynamic Earth Observation / Optical Router   │  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────┘
-```
+### 2. Live Spectrogram & Oscilloscope
+* Renders continuous visual audio waveform oscilloscopes tracking ambient sound levels and incoming acoustic bursts.
+* Provides visual feedback for signal lock and packet reception status.
 
-### 2. The Internal Zero-Latency Loopback Server (`LocalAssetServer`)
-Standard Android WebViews loading from `file:///android_asset/` enforce strict origin sandboxing (`origin = null`), which blocks modern browser features like `AudioContext`, WebAssembly streaming, and microphone permissions.
+### 3. Dual Payload Telemetry Engine
+* **Planetary Earth Observations:** When an atmospheric dataset token is received (`TEMP`, `WIND`, `RAIN`, `HUMID`), the app renders high-resolution NASA satellite observation maps, multi-frame timeline scrubbers, calibrated measurement scales, and scientific summaries:
+  * **Global Air Temperature:** Sampling 2m surface temperature extremes (-40°C to +50°C).
+  * **Near-Surface Wind Velocity:** Tracking 10m velocity belts from gentle breezes to storm-force gales (0–35+ m/s).
+  * **Precipitation & Clouds:** Measuring rainfall intensity and convective cloud cores (0.1–30+ mm/hr).
+  * **Specific Atmospheric Humidity:** Mapping water vapor mass concentrations (0–24+ g/kg).
+* **Standard Optical Visual Imagery:** When non-planetary or custom visual tokens are received (`OPTICAL`), the app surfaces a clean general image card, bypassing atmospheric models and displaying optical matrix details.
 
-To eliminate this barrier without requiring external internet or remote servers:
-- `MainActivity.java` initializes an embedded micro-HTTP loopback server (`LocalAssetServer`) running on `127.0.0.1:<random_port>`.
-- The loopback server streams static assets (`phone.html`, WebAssembly binaries, datasets, images) directly from the APK's compressed `AssetManager`.
-- This gives the WebView a valid `http://127.0.0.1` origin, enabling full Web Audio API, WebAssembly, and native microphone access.
-
-### 3. Native Microphone Permission & Audio Pipeline
-- The app requests Android native `RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS` permissions.
-- In `MainActivity.java`, `WebChromeClient.onPermissionRequest()` intercepts Web Audio permission requests and grants them automatically once native system permission is approved by the user.
-- A callback `onNativeMicPermissionGranted()` bridges the native permission state back to the frontend JavaScript.
-
-### 4. Acoustic Demodulation via WebAssembly
-- Captures microphone audio samples at 44.1 kHz / 48 kHz.
-- Feeds raw audio frames into `acoustic-modem.js`, which runs a Discrete Fourier Transform (DFT) filter bank to detect ultrasonic and near-audible FSK tone bursts.
-- Decodes error-corrected data packets into codewords (`TEMP`, `WIND`, `RAIN`, `HUMID`, or `OPTICAL`).
-
-### 5. Native Spoken Voice Narration Bridge (`WebAppInterface`)
-- The app exposes a native Java interface to JavaScript via `window.AndroidTTS`.
-- When an acoustic signal is decoded, the app triggers Android's native `android.speech.tts.TextToSpeech` engine to read aloud the scientific or optical explanation, providing complete accessibility for blind or visually impaired users without any third-party cloud speech services.
-
-### 6. Intelligent Payload Routing
-- **NASA Earth Observation Imagery:** Codewords `TEMP` (SVS 5147), `WIND` (SVS 5148), `RAIN` (SVS 5149), and `HUMID` (SVS 5150) render calibrated satellite observation maps and telemetry.
-- **Standard Visual Imagery:** Custom or non-Earth images (portraits, personal photos, general images) trigger the dedicated **Standard Visual Image** profile, disabling planetary atmospheric readings and providing neutral optical matrix feedback.
+### 4. Accessible Voice Narration
+* Integrates directly with Android's native `android.speech.tts.TextToSpeech` engine via an internal Java bridge.
+* Automatically speaks the complete scientific observation or optical summary aloud as soon as a transmission is decoded.
+* Includes on-screen voice controls (Replay / Stop) allowing users to pause or repeat the spoken narrative on demand.
 
 ---
 
-## 🗂️ Project Structure
+## Technical Architecture
+
+The app is built as a lightweight, performant native Android wrapper embedding a hardware-accelerated WebView:
 
 ```
-BirlaBlitz_SoundToText_Android_App/
-├── AndroidManifest.xml             # App configuration, permissions & activities
-├── build.bat                       # 1-Click Windows build script
-├── build_apk.py                    # Standalone CLI compilation pipeline
-├── .gitignore                      # Git ignore rules for Android artifacts
-├── README.md                       # Complete documentation
+BirlaBlitzSoundToText.apk (3.18 MB)
+├── Android Native Layer (Java 8)
+│   ├── MainActivity.java           # Window manager, audio permissions & lifecycle
+│   ├── LocalAssetServer.java       # Internal loopback asset server (127.0.0.1)
+│   └── WebAppInterface.java        # Native TextToSpeech accessibility bridge
+│
+├── WebAssembly & Signal Layer
+│   ├── acoustic-modem.js           # Compiled FSK audio demodulation core
+│   └── datasets.js                 # NASA SVS dataset manifest & telemetry models
+│
+└── Frontend Interface Layer
+    ├── phone.html                  # Responsive receiver UI & oscilloscope canvas
+    └── assets/images/              # Pre-packaged satellite observation frames & colorbars
+```
+
+### Why the Internal Loopback Server?
+Standard Android WebViews loading from `file:///android_asset/` enforce strict origin sandboxing (`origin = null`), which blocks modern browser features like `AudioContext` and WebAssembly streaming. To overcome this completely offline without any internet access, `MainActivity.java` runs a zero-latency internal HTTP loopback server on `127.0.0.1` that streams packaged assets directly from the APK's compressed storage.
+
+---
+
+## Repository Structure
+
+```
+.
+├── AndroidManifest.xml             # Android permissions, hardware features & activities
+├── build.bat                       # Windows one-click compilation launcher
+├── build_apk.py                    # Standalone CLI build pipeline
+├── .gitignore                      # Git ignore rules for build artifacts
+├── README.md                       # Documentation
 ├── release/
-│   └── BirlaBlitzSoundToText.apk   # Pre-compiled, signed production APK
+│   └── BirlaBlitzSoundToText.apk   # Pre-compiled, signed production APK (3.18 MB)
 ├── src/
-│   └── com/
-│       └── birlablitz/
-│           └── soundtotext/
-│               └── MainActivity.java # Native WebView, Local server & TTS Bridge
+│   └── com/birlablitz/soundtotext/
+│       └── MainActivity.java       # Native WebView, loopback server & TTS bridge
 ├── res/
-│   ├── mipmap-hdpi/
-│   │   └── ic_launcher.png         # High-resolution launcher icon
-│   ├── mipmap-xxhdpi/
-│   │   └── ic_launcher.png         # Extra-high resolution launcher icon
+│   ├── mipmap-hdpi/ic_launcher.png
+│   ├── mipmap-xxhdpi/ic_launcher.png
 │   └── values/
-│       ├── strings.xml             # App name & UI strings
-│       └── styles.xml              # Material full-screen themes
+│       ├── strings.xml
+│       └── styles.xml
 └── assets/
-    ├── phone.html                  # Responsive mobile acoustic receiver UI
+    ├── phone.html                  # Receiver UI & waveform visualizer
     ├── js/
-    │   ├── acoustic-modem.js       # WebAssembly FSK acoustic core
+    │   ├── acoustic-modem.js       # WebAssembly FSK demodulator
     │   └── datasets.js             # NASA SVS dataset catalog & telemetry data
-    ├── images/                     # Pre-packaged satellite observation frames & scales
-    └── assets/                     # PWA icons & branding assets
+    └── images/                     # Pre-packaged satellite observation frames & scales
 ```
 
 ---
 
-## 🔨 How to Build the APK from Source
+## Building from Source
+
+A pre-compiled, cryptographically signed APK is already provided in `release/BirlaBlitzSoundToText.apk`.
+
+To compile the APK from source using the included automated build pipeline:
 
 ### Prerequisites
-- Python 3.8+ (for running the automated build pipeline)
-- Android SDK Build Tools (aapt2, d8, zipalign, apksigner) & JDK 17
+* Python 3.8+
+* Android SDK Build Tools (`aapt2`, `d8`, `zipalign`, `apksigner`) & JDK 17
 
-### Option 1: One-Click Build (Windows)
-Double-click `build.bat` in the repository root.
+### Build Commands
+* **Windows (1-Click):** Double-click `build.bat`
+* **Command Line:**
+  ```bash
+  python build_apk.py
+  ```
 
-### Option 2: Python Command Line
-```bash
-python build_apk.py
-```
-The script will execute:
-1. `aapt2 compile`: Compiles Android XML layouts and resources into `.flat` files.
-2. `aapt2 link`: Generates `R.java`, links assets, and produces `unaligned.apk`.
-3. `javac`: Compiles `MainActivity.java` and `R.java` targeting Java 1.8 bytecode.
-4. `d8`: Dexes compiled Java `.class` files into `classes.dex`.
-5. `zip`: Packages `classes.dex` into the APK.
-6. `zipalign`: Performs 4-byte boundary alignment.
-7. `apksigner`: Signs the APK with Scheme v1, v2, and v3 signatures.
-
-Output binary will be located in:
-```
-release/BirlaBlitzSoundToText.apk
-```
+The pipeline automatically compiles XML resources, builds Java sources, dexes classes into Dalvik bytecode, aligns to 4-byte boundaries, and cryptographically signs the output APK using `apksigner`.
 
 ---
 
-## 🚀 How to Upload this Code to a Separate GitHub Repo
-
-To publish this standalone Android app in its own dedicated GitHub repository:
-
-### Step 1: Create a New GitHub Repository
-1. Go to [GitHub New Repository](https://github.com/new).
-2. Set the repository name (e.g., `birla-blitz-sound-to-text-android` or `birla-blitz-apk`).
-3. Set visibility to **Public** (or Private).
-4. Do **not** initialize with a README, .gitignore, or license (they are already included).
-5. Click **Create repository**.
-
-### Step 2: Initialize Git and Push
-Open PowerShell or Terminal inside this folder:
-
-```bash
-# Navigate to the Android App directory
-cd "C:\Users\naiti\OneDrive\Desktop\BirlaBlitz_SoundToText_Android_App"
-
-# Initialize git repository
-git init
-
-# Add all files to staging
-git add .
-
-# Create initial commit
-git commit -m "feat: initial commit of Birla Blitz standalone Android APK repository"
-
-# Set branch to main
-git branch -M main
-
-# Add your new remote repository URL (replace with your repo URL)
-git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>.git
-
-# Push code to GitHub
-git push -u origin main
-```
-
----
-
-## 📱 Permissions Used
+## Permissions
 
 | Permission | Purpose |
 | :--- | :--- |
 | `android.permission.RECORD_AUDIO` | Required to capture high-frequency sound waves through device microphone. |
-| `android.permission.MODIFY_AUDIO_SETTINGS` | Ensures audio sampling rates (44.1 kHz / 48 kHz) are optimized for acoustic demodulation. |
-| `android.permission.INTERNET` | Allows localhost loopback binding (`127.0.0.1`) for the internal asset server. |
+| `android.permission.MODIFY_AUDIO_SETTINGS` | Ensures audio sampling rates (44.1 kHz / 48 kHz) are configured for acoustic demodulation. |
+| `android.permission.INTERNET` | Allows localhost loopback binding (`127.0.0.1`) for the internal offline asset server. |
 
 ---
 
-## 📄 License
-This project is licensed under the MIT License - feel free to inspect, modify, and distribute.
+## System Requirements
+
+* **Operating System:** Android 5.0 (Lollipop, API Level 21) or higher.
+* **Architecture:** Universal (ARMv7, ARM64, x86, x86_64).
+* **Hardware:** Any functional device microphone and speaker.
