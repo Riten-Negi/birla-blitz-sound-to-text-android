@@ -454,7 +454,6 @@
       </div>
     </div>
     <div class="header-right">
-      <button id="btnTestSimulate" type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; border-radius:6px; padding:4px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;" title="Simulate Acoustic Detection for Instant Testing">⚡ Test Signal</button>
       <div class="status-pill">
         <div id="rxStatusDot" class="status-dot"></div>
         <span id="rxStatusLabel">Standby</span>
@@ -882,6 +881,17 @@
       micCtx.stroke();
     }
 
+    // Helper to safely sanitize HTML strings
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     // Process decoded acoustic image stream
     function handleDecodedPayload(text) {
       lastReceivedText = text;
@@ -897,9 +907,12 @@
       if (matchedDs) {
         logTerminal(`[IMAGE RECONSTRUCTED] Rendered: ${matchedDs.title}`, true);
         triggerSecretRetraction(matchedDs);
-      } else {
+      } else if (text === "OPTICAL" || text === "CUSTOM") {
         logTerminal(`[OPTICAL RX] Non-Earth / Standard Visual Payload decoded: "${text}"`, true);
         triggerNonEarthPayload(text);
+      } else {
+        logTerminal(`[TEXT RX] Received direct acoustic text message: "${text}"`, true);
+        triggerDirectTextPayload(text);
       }
     }
 
@@ -979,6 +992,69 @@
 
       // Spoken Accessibility Narration for Non-Earth Image
       const speechText = "Acoustic signal decoded for custom payload: " + (token || 'CUSTOM') + ". Standard optical image received. Atmospheric Earth observation telemetry is not applicable.";
+      setTimeout(function() {
+        speakNarrative(speechText);
+      }, 350);
+    }
+
+    function triggerDirectTextPayload(token) {
+      currentUnlockedDataset = null;
+      currentFrameIdx = 0;
+
+      const scrubberRow = document.getElementById("scrubberRow");
+      if (scrubberRow) scrubberRow.style.display = "none";
+
+      const categoryText = "DIRECT ACOUSTIC TEXT MESSENGER • PHYSICAL SOUND";
+      if (vaultCategory) vaultCategory.textContent = categoryText;
+      if (vaultTitle) vaultTitle.textContent = "Direct Text Message Received";
+      if (vaultTag) {
+        vaultTag.textContent = "DECRYPTED OVER SOUND";
+        vaultTag.style.background = "#eff6ff";
+        vaultTag.style.color = "#1d4ed8";
+        vaultTag.style.borderColor = "#bfdbfe";
+      }
+
+      // Hide satellite image and frame label
+      if (vaultImage) vaultImage.style.display = "none";
+      if (vaultFrameLabel) vaultFrameLabel.style.display = "none";
+
+      // Show prominent text message bubble in imageryScreen
+      const standbyScreen = document.getElementById("standbyScreen");
+      if (standbyScreen) {
+        standbyScreen.style.display = "flex";
+        standbyScreen.innerHTML = `
+          <div style="font-size:2.8rem; margin-bottom:10px;">💬</div>
+          <div style="font-size:1.15rem; font-weight:800; color:#38bdf8; margin-bottom:6px;">Acoustic Text Message Received</div>
+          <div style="background:rgba(15,23,42,0.88); border:1.5px solid #38bdf8; border-radius:12px; padding:16px 20px; margin:12px 0; max-width:92%; word-break:break-word; text-align:left; box-shadow:0 6px 20px rgba(0,0,0,0.45);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:0.68rem; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Decrypted Payload:</span>
+              <span style="font-size:0.65rem; color:#38bdf8; font-weight:600; background:rgba(56,189,248,0.15); padding:2px 6px; border-radius:4px;">AIR-GAPPED RX</span>
+            </div>
+            <div style="font-size:1.1rem; font-weight:700; color:#ffffff; font-family:var(--font-mono); line-height:1.45;">${escapeHtml(token)}</div>
+          </div>
+          <div style="font-size:0.75rem; color:#94a3b8; max-width:320px; line-height:1.45; text-align:center;">
+            Transmitted directly through physical sound waves from laptop speaker to phone microphone. Air-gapped and 100% offline.
+          </div>
+        `;
+      }
+
+      if (vaultMetricName) vaultMetricName.textContent = "Decoded Acoustic Payload";
+      if (vaultMetricVal) vaultMetricVal.textContent = token.length + " Characters Decoded";
+
+      const narrative = "Direct acoustic message received over physical sound waves: \"" + token + "\". This message was broadcast by the laptop transmitter without an image attachment and decoded live by the phone receiver microphone.";
+      if (vaultNarrative) {
+        vaultNarrative.textContent = narrative;
+      }
+
+      if (vaultSvsLink) {
+        vaultSvsLink.style.display = "none";
+      }
+
+      const hero = document.getElementById("heroDisplay");
+      if (hero) hero.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      // Spoken Accessibility Narration for Direct Message
+      const speechText = "Received acoustic text message: " + token;
       setTimeout(function() {
         speakNarrative(speechText);
       }, 350);
@@ -1154,15 +1230,6 @@
     if (btnStopPhoneAudio) {
       btnStopPhoneAudio.addEventListener("click", () => {
         stopSpeaking();
-      });
-    }
-
-    // Instant test trigger button
-    const btnTestSimulate = document.getElementById("btnTestSimulate");
-    if (btnTestSimulate) {
-      btnTestSimulate.addEventListener("click", () => {
-        logTerminal("[TEST] Manually triggering acoustic payload for verification...");
-        handleDecodedPayload("TEMP");
       });
     }
   </script>
