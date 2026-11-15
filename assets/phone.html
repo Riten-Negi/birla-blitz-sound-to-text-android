@@ -910,16 +910,16 @@
 
       const upper = (token || "").toUpperCase().trim();
 
-      if (upper === "HUMID" || upper.includes("5150") || upper.includes("Q2M") || upper === "HUMIDITY") {
+      if (upper === "HUMID" || upper.includes("5150") || upper.includes("Q2M") || upper === "HUMIDITY" || upper.includes("MC04")) {
         return datasets.find(d => d.id === "geos-near-surface-humidity");
       }
-      if (upper === "RAIN" || upper.includes("5149") || upper.includes("PRECIP")) {
+      if (upper === "RAIN" || upper.includes("5149") || upper.includes("PRECIP") || upper.includes("MC03")) {
         return datasets.find(d => d.id === "geos-precipitation-clouds");
       }
-      if (upper === "WIND" || upper.includes("5148")) {
+      if (upper === "WIND" || upper.includes("5148") || upper.includes("MC02")) {
         return datasets.find(d => d.id === "near-surface-wind");
       }
-      if (upper === "TEMP" || upper.includes("5147") || upper === "GEOS_TEMP" || upper === "TEMPERATURE") {
+      if (upper === "TEMP" || upper.includes("5147") || upper === "GEOS_TEMP" || upper === "TEMPERATURE" || upper.includes("MC01")) {
         return datasets.find(d => d.id === "global-temperature");
       }
 
