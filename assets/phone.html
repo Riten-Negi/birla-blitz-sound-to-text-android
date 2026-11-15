@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Birla Blitz - Acoustic Image Receiver</title>
+  <meta name="description" content="Birla Blitz Real-Time Acoustic Image Receiver App.">
+  
+  <!-- PWA & Mobile App Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Birla Blitz">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="icon" type="image/png" href="assets/icon-192.png">
+
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-input: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-focus: #3b82f6;
+      --primary: #1d4ed8;
+      --primary-hover: #1e40af;
+      --success: #059669;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "SF Mono", "Fira Code", Consolas, Menlo, monospace;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      gap: 14px;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top App Header */
+    .app-header {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+      flex-shrink: 0;
+    }
+
+    .header-titles h1 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+
+    .header-titles .sub {
+      font-size: 0.72rem;
+      color: var(--primary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+
+    .status-dot.active {
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse-dot 1.5s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .btn-install {
+      display: none;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Insecure Context (HTTP) Warning Banner */
+    .https-banner {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #991b1b;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .https-banner a {
+      display: inline-block;
+      margin-top: 8px;
+      background: #dc2626;
+      color: #ffffff;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.8rem;
+    }
+
+    /* Listening Controller Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-rx {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .btn-rx:active {
+      transform: scale(0.98);
+    }
+
+    .btn-rx.listening {
+      background: var(--success);
+      box-shadow: 0 4px 16px rgba(5, 150, 105, 0.35);
+    }
+
+    /* Waveform Oscilloscope */
+    .waveform-wrapper {
+      height: 48px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    canvas#micCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Dedicated Rx Data Display (Exact Received Message) */
+    .rx-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .rx-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rx-time-badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .rx-text-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 85px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .rx-text-content {
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+      word-break: break-word;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .rx-placeholder {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    .rx-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .btn-action-small {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-action-small:hover {
+      background: #f1f5f9;
+    }
+
+    /* Secret Retracted Visual Telemetry Vault */
+    .retracted-vault {
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-lg);
+      animation: slide-up 0.35s ease-out;
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .vault-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .vault-tag {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .imagery-screen {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000000;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .imagery-screen img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .vault-scrubber-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-step {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .vault-slider {
+      flex: 1;
+      accent-color: var(--primary);
+      height: 5px;
+    }
+
+    .telemetry-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .metric-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-val {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--primary);
+      font-family: var(--font-mono);
+    }
+
+    .desc-text {
+      font-size: 0.8rem;
+      color: var(--text-main);
+      line-height: 1.4;
+      margin-top: 4px;
+    }
+
+    /* Terminal Console */
+    .terminal {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      height: 70px;
+      overflow-y: auto;
+      line-height: 1.4;
+    }
+
+    .terminal-line { margin-bottom: 2px; }
+    .terminal-line.match { color: #047857; font-weight: 700; }
+    .terminal-line.error { color: var(--danger); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand-group">
+      <div class="app-icon">B</div>
+      <div class="header-titles">
+        <h1>Birla Blitz</h1>
+        <div class="sub">Acoustic Image Receiver</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="btnTestSimulate" type="button" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; border-radius:6px; padding:4px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;" title="Simulate Acoustic Detection for Instant Testing">⚡ Test Signal</button>
+      <div class="status-pill">
+        <div id="rxStatusDot" class="status-dot"></div>
+        <span id="rxStatusLabel">Standby</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Audio Listening & Waveform Controller -->
+  <main class="card">
+    <!-- Visual Microphone Error / Permission Banner -->
+    <div id="micErrorBanner" style="display:none; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; color:#991b1b; font-size:0.82rem; line-height:1.45;">
+      <strong style="display:block; margin-bottom:2px;">⚠️ Microphone Access Needed</strong>
+      <span id="micErrorMessage">Please allow microphone access when prompted so the app can hear the acoustic transmission.</span>
+    </div>
+
+    <button id="btnToggleCapture" class="btn-rx" type="button">
+      <span>🎙 START LISTENING (AUDIO RX)</span>
+    </button>
+
+    <div class="waveform-wrapper">
+      <canvas id="micCanvas" width="400" height="48"></canvas>
+    </div>
+  </main>
+
+  <!-- PRIMARY HERO PRESENTATION: Reconstructed Imagery & Spoken Science Narrative -->
+  <section id="heroDisplay" class="retracted-vault" style="display: flex;">
+    <div class="vault-header">
+      <div>
+        <span id="vaultCategory" style="font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">NASA EARTH OBSERVATION</span>
+        <h3 id="vaultTitle" style="font-size: 1.05rem; color: var(--text-main); font-weight: 800;">Awaiting Acoustic Transmission</h3>
+      </div>
+      <span class="vault-tag" id="vaultTag" style="background:#f1f5f9; color:#64748b; border-color:#cbd5e1;">STANDBY</span>
+    </div>
+
+    <!-- Visual Satellite Frame Screen -->
+    <div class="imagery-screen" id="imageryScreen">
+      <!-- Standby Screen -->
+      <div id="standbyScreen" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#090d16; color:#94a3b8; padding:20px; text-align:center;">
+        <div style="font-size:2rem; margin-bottom:8px;">📡</div>
+        <div style="font-size:0.95rem; font-weight:700; color:#e2e8f0; margin-bottom:4px;">Awaiting Acoustic Image Stream</div>
+        <div style="font-size:0.75rem; color:#64748b;">Tap "Start Listening" above and transmit image data via laptop speakers.</div>
+      </div>
+      <!-- Reconstructed Satellite Image -->
+      <img id="vaultImage" src="" alt="Reconstructed Satellite Imagery" style="display:none; width:100%; height:100%; object-fit:cover;">
+      <div style="display:none; position: absolute; bottom: 6px; right: 8px; background: rgba(0,0,0,0.75); font-family: var(--font-mono); font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; color: #ffffff;" id="vaultFrameLabel">
+        Frame 1
+      </div>
+    </div>
+
+    <!-- Frame Timeline Scrubber (Exploration) -->
+    <div class="vault-scrubber-row" id="scrubberRow" style="display:none;">
+      <button id="btnFramePrev" class="btn-step" type="button">◀ Prev</button>
+      <input type="range" id="vaultScrubber" class="vault-slider" min="0" max="7" value="0" step="1">
+      <button id="btnFrameNext" class="btn-step" type="button">Next ▶</button>
+    </div>
+
+    <!-- Telemetry Information & Scientific Narrative Card -->
+    <div class="telemetry-card">
+      <div class="metric-row">
+        <span class="metric-title" id="vaultMetricName">Observation Telemetry</span>
+        <span class="metric-val" id="vaultMetricVal">--</span>
+      </div>
+
+      <!-- Spoken Accessibility Voice Controls -->
+      <div id="narrationBox" style="display:flex; align-items:center; justify-content:space-between; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; margin-top:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="speakerIcon" style="font-size:1.25rem;">🔊</span>
+          <div>
+            <div id="narrationStatus" style="font-size:0.8rem; font-weight:700; color:#1d4ed8;">Accessible Voice Narration</div>
+            <div style="font-size:0.7rem; color:#64748b;">Auto-narrating explanation aloud for accessibility</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button id="btnPlayPhoneAudio" type="button" class="btn-step" style="background:#1d4ed8; color:#fff; font-weight:700; padding:6px 12px; border:none; cursor:pointer;">🔊 Replay</button>
+          <button id="btnStopPhoneAudio" type="button" class="btn-step" style="background:#f1f5f9; color:#475569; padding:6px 10px; border:1px solid #cbd5e1; cursor:pointer;">⏹ Stop</button>
+        </div>
+      </div>
+
+      <div style="font-size:0.75rem; font-weight:700; color:#475569; text-transform:uppercase; margin-top:12px; letter-spacing:0.5px;">
+        Scientific Explanation & Analysis:
+      </div>
+      <p class="desc-text" id="vaultNarrative" style="font-size:0.88rem; line-height:1.6; color:#0f172a; background:#ffffff; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:6px; font-weight:500;">
+        When acoustic sound wave is detected by your phone's microphone, the satellite imagery will render above and this scientific explanation will be read aloud automatically.
+      </p>
+
+      <div style="margin-top: 8px;">
+        <a id="vaultSvsLink" href="#" target="_blank" rel="noopener noreferrer" style="font-size: 0.72rem; color: var(--primary); font-weight: 600; text-decoration: underline; display:none;">
+          NASA SVS Catalog Source ↗
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Decryption Terminal Console -->
+  <div id="terminalLog" class="terminal">
+    <div class="terminal-line">[SYSTEM READY] Birla Blitz Sound to Text engine loaded.</div>
+    <div class="terminal-line">[STANDBY] Authorize microphone to listen for acoustic audio streams.</div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/acoustic-modem.js"></script>
+  <script src="js/datasets.js"></script>
+  <script>
+    // State
+    let isCapturing = false;
+    let audioContext = null;
+    let mediaStream = null;
+    let recorderNode = null;
+    let analyserNode = null;
+    let acousticModule = null;
+    let acousticInstance = null;
+    let acousticModulePromise = null;
+    let currentUnlockedDataset = null;
+    let currentFrameIdx = 0;
+    let lastReceivedText = "";
+
+    // DOM Refs
+    const btnToggleCapture = document.getElementById("btnToggleCapture");
+    const terminalLog = document.getElementById("terminalLog");
+    const micCanvas = document.getElementById("micCanvas");
+    const micCtx = micCanvas ? micCanvas.getContext("2d") : null;
+    const rxStatusDot = document.getElementById("rxStatusDot");
+    const rxStatusLabel = document.getElementById("rxStatusLabel");
+    const micErrorBanner = document.getElementById("micErrorBanner");
+    const micErrorMessage = document.getElementById("micErrorMessage");
+
+    const vaultCategory = document.getElementById("vaultCategory");
+    const vaultTitle = document.getElementById("vaultTitle");
+    const vaultTag = document.getElementById("vaultTag");
+    const vaultImage = document.getElementById("vaultImage");
+    const vaultFrameLabel = document.getElementById("vaultFrameLabel");
+    const vaultMetricName = document.getElementById("vaultMetricName");
+    const vaultMetricVal = document.getElementById("vaultMetricVal");
+    const vaultNarrative = document.getElementById("vaultNarrative");
+    const vaultSvsLink = document.getElementById("vaultSvsLink");
+    const vaultScrubber = document.getElementById("vaultScrubber");
+    const btnFramePrev = document.getElementById("btnFramePrev");
+    const btnFrameNext = document.getElementById("btnFrameNext");
+    const btnPlayPhoneAudio = document.getElementById("btnPlayPhoneAudio");
+    const btnStopPhoneAudio = document.getElementById("btnStopPhoneAudio");
+
+    // Initialize core demodulator asynchronously
+    if (typeof acoustic_factory !== "undefined") {
+      logTerminal("[INIT] Loading acoustic demodulator...");
+      acousticModulePromise = acoustic_factory().then(obj => {
+        acousticModule = obj;
+        logTerminal("[READY] Acoustic demodulator initialized successfully.");
+        return obj;
+      }).catch(err => {
+        logTerminal("[ERROR] Engine init failure: " + err, false, true);
+        return null;
+      });
+    }
+
+    function logTerminal(msg, isMatch = false, isError = false) {
+      if (!terminalLog) return;
+      const line = document.createElement("div");
+      line.className = `terminal-line ${isMatch ? 'match' : ''} ${isError ? 'error' : ''}`;
+      line.textContent = `${new Date().toLocaleTimeString()} ${msg}`;
+      terminalLog.appendChild(line);
+      terminalLog.scrollTop = terminalLog.scrollHeight;
+    }
+
+    function showMicErrorBanner(msg) {
+      if (micErrorBanner) {
+        micErrorBanner.style.display = "block";
+        if (micErrorMessage) micErrorMessage.textContent = msg;
+      }
+    }
+
+    function hideMicErrorBanner() {
+      if (micErrorBanner) {
+        micErrorBanner.style.display = "none";
+      }
+    }
+
+    // Callback when user grants native microphone permission via system dialog
+    window.onNativeMicPermissionGranted = function() {
+      logTerminal("[PERM] Native microphone permission granted by user.");
+      hideMicErrorBanner();
+      if (!isCapturing) {
+        startCapture();
+      }
+    };
+
+    function convertTypedArray(src, type) {
+      const buffer = new ArrayBuffer(src.byteLength);
+      new src.constructor(buffer).set(src);
+      return new type(buffer);
+    }
+
+    // Start / Stop Microphone Capture
+    if (btnToggleCapture) {
+      btnToggleCapture.addEventListener("click", () => {
+        if (!isCapturing) {
+          startCapture();
+        } else {
+          stopCapture();
+        }
+      });
+    }
+
+    async function startCapture() {
+      hideMicErrorBanner();
+      if (btnToggleCapture) {
+        btnToggleCapture.innerHTML = "<span>⏳ CONNECTING MICROPHONE...</span>";
+      }
+
+      try {
+        // 1. Native Android Permission Check & Trigger
+        if (window.AndroidTTS && typeof window.AndroidTTS.hasMicPermission === "function") {
+          if (!window.AndroidTTS.hasMicPermission()) {
+            logTerminal("[PERM] Requesting native microphone permission...");
+            window.AndroidTTS.requestMicPermission();
+            if (btnToggleCapture) {
+              btnToggleCapture.innerHTML = "<span>🎙 TAP TO GRANT PERMISSION</span>";
+            }
+            return;
+          }
+        }
+
+        // 2. Ensure Demodulator WebAssembly Engine is ready
+        if (!acousticModule && acousticModulePromise) {
+          if (btnToggleCapture) btnToggleCapture.innerHTML = "<span>⏳ LOADING ACOUSTIC ENGINE...</span>";
+          acousticModule = await acousticModulePromise;
+        }
+
+        // 3. Resolve MediaDevices getUserMedia function
+        let getUserMediaFn = null;
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          getUserMediaFn = (c) => navigator.mediaDevices.getUserMedia(c);
+        } else if (navigator.getUserMedia) {
+          getUserMediaFn = (c) => new Promise((res, rej) => navigator.getUserMedia.call(navigator, c, res, rej));
+        } else if (navigator.webkitGetUserMedia) {
+          getUserMediaFn = (c) => new Promise((res, rej) => navigator.webkitGetUserMedia.call(navigator, c, res, rej));
+        } else if (navigator.mozGetUserMedia) {
+          getUserMediaFn = (c) => new Promise((res, rej) => navigator.mozGetUserMedia.call(navigator, c, res, rej));
+        }
+
+        if (!getUserMediaFn) {
+          throw new Error("Microphone API not supported on this browser context.");
+        }
+
+        // 4. Web Audio Context
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) {
+          throw new Error("Web Audio API not supported on this device.");
+        }
+
+        if (!audioContext) {
+          try {
+            audioContext = new AudioCtx({ sampleRate: 48000 });
+          } catch (eRate) {
+            console.warn("AudioContext 48kHz rejected, falling back to hardware default sampleRate:", eRate);
+            audioContext = new AudioCtx();
+          }
+        }
+
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
+        }
+
+        const micSampleRate = audioContext.sampleRate || 48000;
+        const TARGET_SAMPLE_RATE = 48000;
+
+        // 5. Initialize acoustic instance calibrated to 48000 Hz with high acoustic sensitivity
+        if (!acousticInstance && acousticModule) {
+          const params = acousticModule.getDefaultParameters();
+          params.sampleRate = TARGET_SAMPLE_RATE;
+          params.sampleRateInp = TARGET_SAMPLE_RATE;
+          params.sampleRateOut = TARGET_SAMPLE_RATE;
+          params.soundMarkerThreshold = 1.5; // High sensitivity to pick up laptop chirps across the room
+          acousticInstance = acousticModule.init(params);
+          logTerminal(`[ENGINE] Acoustic receiver active (Mic: ${micSampleRate}Hz -> Stream: ${TARGET_SAMPLE_RATE}Hz).`);
+        }
+
+        // 6. Request Microphone Audio Stream with Graceful Constraint Fallback
+        let stream;
+        try {
+          stream = await getUserMediaFn({
+            audio: {
+              echoCancellation: false,
+              autoGainControl: false,
+              noiseSuppression: false
+            }
+          });
+        } catch (eConstraints) {
+          console.warn("Strict audio constraints rejected, falling back to basic audio stream:", eConstraints);
+          stream = await getUserMediaFn({ audio: true });
+        }
+
+        mediaStream = stream;
+        const sourceNode = audioContext.createMediaStreamSource(stream);
+
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 256;
+        sourceNode.connect(analyserNode);
+
+        const bufferSize = 1024;
+        if (audioContext.createScriptProcessor) {
+          recorderNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
+        } else {
+          recorderNode = audioContext.createJavaScriptNode(bufferSize, 1, 1);
+        }
+
+        // Real-time audio resampling and streaming frame buffer
+        let audioSampleBuffer = [];
+
+        recorderNode.onaudioprocess = (e) => {
+          if (!acousticModule || !acousticInstance) return;
+          const inputData = e.inputBuffer.getChannelData(0);
+
+          // Resample incoming audio samples to exactly 48000 Hz if hardware mic is at 44100 Hz
+          if (micSampleRate === TARGET_SAMPLE_RATE) {
+            for (let i = 0; i < inputData.length; i++) {
+              audioSampleBuffer.push(inputData[i]);
+            }
+          } else {
+            const ratio = TARGET_SAMPLE_RATE / micSampleRate;
+            const outLen = Math.round(inputData.length * ratio);
+            for (let j = 0; j < outLen; j++) {
+              const origIdx = j / ratio;
+              const i0 = Math.floor(origIdx);
+              const i1 = Math.min(i0 + 1, inputData.length - 1);
+              const frac = origIdx - i0;
+              audioSampleBuffer.push(inputData[i0] * (1 - frac) + inputData[i1] * frac);
+            }
+          }
+
+          // Feed in 1024-sample frames to the demodulator
+          while (audioSampleBuffer.length >= 1024) {
+            const chunk = new Float32Array(audioSampleBuffer.splice(0, 1024));
+            const rawBytes = new Int8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+            const res = acousticModule.decode(acousticInstance, rawBytes);
+
+            if (res && res.length > 0) {
+              const decodedText = new TextDecoder("utf-8").decode(res);
+              handleDecodedPayload(decodedText);
+            }
+          }
+        };
+
+        // Mute playback of microphone input to prevent acoustic feedback ducking
+        const silenceNode = audioContext.createGain();
+        silenceNode.gain.value = 0.0;
+        sourceNode.connect(recorderNode);
+        recorderNode.connect(silenceNode);
+        silenceNode.connect(audioContext.destination);
+
+        // 7. Update UI to Active Listening State
+        isCapturing = true;
+        if (btnToggleCapture) {
+          btnToggleCapture.classList.add("listening");
+          btnToggleCapture.innerHTML = "<span>🛑 STOP LISTENING (ACTIVE)</span>";
+        }
+        if (rxStatusDot) rxStatusDot.classList.add("active");
+        if (rxStatusLabel) rxStatusLabel.textContent = "Listening";
+        logTerminal("[ACTIVE] Microphone capturing sound. Listening for audio stream...");
+
+        drawMicSpectrum();
+
+      } catch (err) {
+        console.error("Mic error:", err);
+        isCapturing = false;
+        if (btnToggleCapture) {
+          btnToggleCapture.classList.remove("listening");
+          btnToggleCapture.innerHTML = "<span>🎙 START LISTENING (AUDIO RX)</span>";
+        }
+        if (rxStatusDot) rxStatusDot.classList.remove("active");
+        if (rxStatusLabel) rxStatusLabel.textContent = "Error";
+        
+        const errorMsg = (err.name ? err.name + ": " : "") + (err.message || "Microphone access failed.");
+        showMicErrorBanner("Microphone access failed: " + errorMsg + ". Please tap 'Allow' or check app permissions in phone Settings.");
+        logTerminal("[MIC ERROR] " + errorMsg, false, true);
+
+        if (window.AndroidTTS && typeof window.AndroidTTS.showToast === "function") {
+          window.AndroidTTS.showToast("Microphone error: " + (err.message || err.name));
+        }
+      }
+    }
+
+    function stopCapture() {
+      if (recorderNode) {
+        try { recorderNode.disconnect(); } catch(e) {}
+        recorderNode = null;
+      }
+      if (mediaStream) {
+        try { mediaStream.getTracks().forEach(t => t.stop()); } catch(e) {}
+        mediaStream = null;
+      }
+      isCapturing = false;
+      if (btnToggleCapture) {
+        btnToggleCapture.classList.remove("listening");
+        btnToggleCapture.innerHTML = "<span>🎙 START LISTENING (AUDIO RX)</span>";
+      }
+      if (rxStatusDot) rxStatusDot.classList.remove("active");
+      if (rxStatusLabel) rxStatusLabel.textContent = "Standby";
+      logTerminal("[PAUSED] Audio capture stopped.");
+    }
+
+    function drawMicSpectrum() {
+      if (!isCapturing || !analyserNode || !micCtx || !micCanvas) return;
+      requestAnimationFrame(drawMicSpectrum);
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteTimeDomainData(dataArray);
+
+      micCtx.fillStyle = "#f8fafc";
+      micCtx.fillRect(0, 0, micCanvas.width, micCanvas.height);
+
+      micCtx.lineWidth = 2.0;
+      micCtx.strokeStyle = "#2563eb";
+      micCtx.beginPath();
+
+      const sliceWidth = micCanvas.width / bufferLength;
+      let x = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * micCanvas.height) / 2;
+        if (i === 0) micCtx.moveTo(x, y);
+        else micCtx.lineTo(x, y);
+        x += sliceWidth;
+      }
+      micCtx.stroke();
+    }
+
+    // Process decoded acoustic image stream
+    function handleDecodedPayload(text) {
+      lastReceivedText = text;
+
+      if (navigator.vibrate) navigator.vibrate([120, 60, 180]);
+
+      if (rxStatusDot) rxStatusDot.classList.add("active");
+      if (rxStatusLabel) rxStatusLabel.textContent = "Signal Decoded";
+
+      logTerminal(`[ACOUSTIC RX] Demodulating high-frequency audio stream: "${text}"`, false);
+
+      const matchedDs = detectHiddenKeywords(text);
+      if (matchedDs) {
+        logTerminal(`[IMAGE RECONSTRUCTED] Rendered: ${matchedDs.title}`, true);
+        triggerSecretRetraction(matchedDs);
+      } else {
+        logTerminal(`[OPTICAL RX] Non-Earth / Standard Visual Payload decoded: "${text}"`, true);
+        triggerNonEarthPayload(text);
+      }
+    }
+
+    // Strict Earth observation keyword matching engine
+    function detectHiddenKeywords(token) {
+      const datasets = window.EARTH_DATASETS ? window.EARTH_DATASETS.datasets : [];
+      if (!datasets || datasets.length === 0) return null;
+
+      const upper = (token || "").toUpperCase().trim();
+
+      if (upper === "HUMID" || upper.includes("5150") || upper.includes("Q2M") || upper === "HUMIDITY") {
+        return datasets.find(d => d.id === "geos-near-surface-humidity");
+      }
+      if (upper === "RAIN" || upper.includes("5149") || upper.includes("PRECIP")) {
+        return datasets.find(d => d.id === "geos-precipitation-clouds");
+      }
+      if (upper === "WIND" || upper.includes("5148")) {
+        return datasets.find(d => d.id === "near-surface-wind");
+      }
+      if (upper === "TEMP" || upper.includes("5147") || upper === "GEOS_TEMP" || upper === "TEMPERATURE") {
+        return datasets.find(d => d.id === "global-temperature");
+      }
+
+      // If token does NOT match any Earth observation dataset, return null (do NOT fall back to Earth temperature!)
+      return null;
+    }
+
+    function triggerNonEarthPayload(token) {
+      currentUnlockedDataset = null;
+      currentFrameIdx = 0;
+
+      const scrubberRow = document.getElementById("scrubberRow");
+      if (scrubberRow) scrubberRow.style.display = "none";
+
+      const categoryText = "STANDARD OPTICAL VISUAL TELEMETRY";
+      if (vaultCategory) vaultCategory.textContent = categoryText;
+      if (vaultTitle) vaultTitle.textContent = "General Visual Image Received";
+      if (vaultTag) {
+        vaultTag.textContent = "NON-ATMOSPHERIC";
+        vaultTag.style.background = "#f1f5f9";
+        vaultTag.style.color = "#475569";
+        vaultTag.style.borderColor = "#cbd5e1";
+      }
+
+      // Hide satellite image and frame label
+      if (vaultImage) vaultImage.style.display = "none";
+      if (vaultFrameLabel) vaultFrameLabel.style.display = "none";
+
+      // Show non-earth visual banner in imageryScreen
+      const standbyScreen = document.getElementById("standbyScreen");
+      if (standbyScreen) {
+        standbyScreen.style.display = "flex";
+        standbyScreen.innerHTML = `
+          <div style="font-size:2.8rem; margin-bottom:10px;">🖼️</div>
+          <div style="font-size:1.05rem; font-weight:800; color:#f8fafc; margin-bottom:6px;">Standard Visual Image Received</div>
+          <div style="font-size:0.8rem; font-weight:600; color:#38bdf8; margin-bottom:8px; font-family:var(--font-mono);">Optical Payload: "${token || 'CUSTOM'}"</div>
+          <div style="font-size:0.75rem; color:#94a3b8; max-width:320px; line-height:1.45; text-align:center;">
+            This file is classified as a general visual image (portrait, personal photo, or non-Earth target). NASA Earth observation telemetry (surface temperature, wind speed, precipitation, and humidity) is not applicable and has been deactivated.
+          </div>
+        `;
+      }
+
+      if (vaultMetricName) vaultMetricName.textContent = "Payload Classification";
+      if (vaultMetricVal) vaultMetricVal.textContent = "Standard Optical Matrix (" + (token || 'CUSTOM') + ")";
+
+      const narrative = "Acoustic optical transmission received for payload '" + (token || 'CUSTOM') + "'. This visual transmission is recognized as a standard optical image (such as a portrait, general photograph, or non-Earth visual). Because this is not a NASA Earth Observation dataset, atmospheric planetary telemetry models (including surface air temperatures, wind velocity, precipitation intensity, and specific humidity) are not applicable.";
+      if (vaultNarrative) {
+        vaultNarrative.textContent = narrative;
+      }
+
+      if (vaultSvsLink) {
+        vaultSvsLink.style.display = "none";
+      }
+
+      const hero = document.getElementById("heroDisplay");
+      if (hero) hero.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      // Spoken Accessibility Narration for Non-Earth Image
+      const speechText = "Acoustic signal decoded for custom payload: " + (token || 'CUSTOM') + ". Standard optical image received. Atmospheric Earth observation telemetry is not applicable.";
+      setTimeout(function() {
+        speakNarrative(speechText);
+      }, 350);
+    }
+
+    function triggerSecretRetraction(matchedDs) {
+      currentUnlockedDataset = matchedDs;
+      currentFrameIdx = 0;
+
+      const scrubberRow = document.getElementById("scrubberRow");
+      if (scrubberRow && matchedDs.frames && matchedDs.frames.length > 1) {
+        scrubberRow.style.display = "flex";
+        if (vaultScrubber) {
+          vaultScrubber.max = matchedDs.frames.length - 1;
+          vaultScrubber.value = 0;
+        }
+      } else if (scrubberRow) {
+        scrubberRow.style.display = "none";
+      }
+
+      renderVaultFrame(0);
+
+      const hero = document.getElementById("heroDisplay");
+      if (hero) hero.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      // AUTOMATICALLY NARRATE THE FULL SCIENTIFIC PARAGRAPH ALOUD FOR BLIND/VISUALLY IMPAIRED USERS!
+      const textToNarrate = matchedDs.description || (matchedDs.frames && matchedDs.frames[0] ? matchedDs.frames[0].audioNarrative : "");
+      if (textToNarrate) {
+        setTimeout(function() {
+          speakNarrative(textToNarrate);
+        }, 350);
+      }
+    }
+
+    function renderVaultFrame(idx) {
+      if (!currentUnlockedDataset) return;
+      currentFrameIdx = idx;
+      const frame = currentUnlockedDataset.frames[idx] || currentUnlockedDataset.frames[0];
+      
+      const categoryText = `${currentUnlockedDataset.category || 'Atmospheric Science'} • ${currentUnlockedDataset.nasaSvsId || 'NASA'}`;
+      if (vaultCategory) vaultCategory.textContent = categoryText;
+      if (vaultTitle) vaultTitle.textContent = currentUnlockedDataset.title;
+      if (vaultTag) {
+        vaultTag.textContent = `RECONSTRUCTED VIA SOUND • ${currentUnlockedDataset.nasaSvsId || 'NASA'}`;
+        vaultTag.style.background = "#ecfdf5";
+        vaultTag.style.color = "#047857";
+        vaultTag.style.borderColor = "#a7f3d0";
+      }
+
+      // Hide standby screen and show image
+      const standbyScreen = document.getElementById("standbyScreen");
+      if (standbyScreen) standbyScreen.style.display = "none";
+
+      if (vaultImage) {
+        vaultImage.style.display = "block";
+        vaultImage.src = `assets/images/${frame.filename}`;
+        vaultImage.onerror = function() {
+          vaultImage.src = `images/${frame.filename}`;
+        };
+      }
+
+      if (vaultFrameLabel) {
+        vaultFrameLabel.style.display = "block";
+        vaultFrameLabel.textContent = frame.label || "Frame 1";
+      }
+
+      if (vaultMetricName) vaultMetricName.textContent = frame.metricName || "Observation Telemetry";
+      if (vaultMetricVal) vaultMetricVal.textContent = frame.value || "--";
+
+      // ALWAYS USE THE FULL USER NASA PARAGRAPH
+      const fullParagraph = currentUnlockedDataset.description || frame.audioNarrative;
+      if (vaultNarrative) {
+        vaultNarrative.textContent = fullParagraph;
+      }
+
+      if (vaultSvsLink) {
+        if (currentUnlockedDataset.nasaResourceUrl) {
+          vaultSvsLink.href = currentUnlockedDataset.nasaResourceUrl;
+          vaultSvsLink.textContent = `NASA SVS Catalog Source ↗`;
+          vaultSvsLink.style.display = "inline";
+        } else {
+          vaultSvsLink.style.display = "none";
+        }
+      }
+    }
+
+    // Frame scrubber events
+    if (vaultScrubber) {
+      vaultScrubber.addEventListener("input", (e) => {
+        renderVaultFrame(parseInt(e.target.value, 10));
+      });
+    }
+
+    if (btnFramePrev) {
+      btnFramePrev.addEventListener("click", () => {
+        if (!currentUnlockedDataset) return;
+        let next = currentFrameIdx - 1;
+        if (next < 0) next = currentUnlockedDataset.frames.length - 1;
+        if (vaultScrubber) vaultScrubber.value = next;
+        renderVaultFrame(next);
+      });
+    }
+
+    if (btnFrameNext) {
+      btnFrameNext.addEventListener("click", () => {
+        if (!currentUnlockedDataset) return;
+        let next = currentFrameIdx + 1;
+        if (next >= currentUnlockedDataset.frames.length) next = 0;
+        if (vaultScrubber) vaultScrubber.value = next;
+        renderVaultFrame(next);
+      });
+    }
+
+    // Speech Narration Engine (Android Native TTS + Web Speech API fallback)
+    function speakNarrative(text) {
+      if (!text) return;
+
+      const narrationStatus = document.getElementById("narrationStatus");
+      const speakerIcon = document.getElementById("speakerIcon");
+      if (narrationStatus) narrationStatus.textContent = "🔊 Speaking Scientific Analysis Aloud...";
+      if (speakerIcon) speakerIcon.textContent = "📢";
+
+      // 1. Native Android TTS Interface (Always works on Android)
+      if (window.AndroidTTS && typeof window.AndroidTTS.speak === "function") {
+        window.AndroidTTS.speak(text);
+        logTerminal("[VOICE NARRATION] Speaking complete analysis aloud via Android speech engine.");
+        return;
+      }
+
+      // 2. Fallback to Web Speech API
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utt = new SpeechSynthesisUtterance(text);
+          utt.rate = 0.95;
+          utt.pitch = 1.0;
+          utt.onend = function() {
+            if (narrationStatus) narrationStatus.textContent = "Voice Narration Complete";
+            if (speakerIcon) speakerIcon.textContent = "🔊";
+          };
+          window.speechSynthesis.speak(utt);
+          logTerminal("[VOICE NARRATION] Speaking complete analysis aloud via Web Speech API.");
+        } catch(e) {}
+      }
+    }
+
+    function stopSpeaking() {
+      if (window.AndroidTTS && typeof window.AndroidTTS.stop === "function") {
+        window.AndroidTTS.stop();
+      }
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+      }
+      const narrationStatus = document.getElementById("narrationStatus");
+      const speakerIcon = document.getElementById("speakerIcon");
+      if (narrationStatus) narrationStatus.textContent = "Voice Narration Paused";
+      if (speakerIcon) speakerIcon.textContent = "🔈";
+    }
+
+    // Wire up narration buttons
+    if (btnPlayPhoneAudio) {
+      btnPlayPhoneAudio.addEventListener("click", () => {
+        if (currentUnlockedDataset) {
+          const textToNarrate = currentUnlockedDataset.description || (currentUnlockedDataset.frames && currentUnlockedDataset.frames[currentFrameIdx] ? currentUnlockedDataset.frames[currentFrameIdx].audioNarrative : "");
+          speakNarrative(textToNarrate);
+        } else {
+          const narrative = vaultNarrative ? vaultNarrative.textContent : "";
+          if (narrative) speakNarrative(narrative);
+        }
+      });
+    }
+
+    if (btnStopPhoneAudio) {
+      btnStopPhoneAudio.addEventListener("click", () => {
+        stopSpeaking();
+      });
+    }
+
+    // Instant test trigger button
+    const btnTestSimulate = document.getElementById("btnTestSimulate");
+    if (btnTestSimulate) {
+      btnTestSimulate.addEventListener("click", () => {
+        logTerminal("[TEST] Manually triggering acoustic payload for verification...");
+        handleDecodedPayload("TEMP");
+      });
+    }
+  </script>
+</body>
+</html>

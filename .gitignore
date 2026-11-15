@@ -1,0 +1,21 @@
+# Android build artifacts
+build/
+classes/
+dex/
+gen/
+*.class
+*.dex
+*.flat
+*.idsig
+
+# Gradle / Android Studio cache (if imported)
+.gradle/
+.idea/
+*.iml
+local.properties
+.cxx/
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+*.log
